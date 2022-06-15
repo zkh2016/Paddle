@@ -24,6 +24,7 @@ limitations under the License. */
 #include "paddle/phi/kernels/copy_kernel.h"
 #include "paddle/phi/kernels/sparse/convolution_grad_kernel.h"
 #include "paddle/phi/kernels/sparse/convolution_kernel.h"
+#include "paddle/utils/optional.h"
 
 namespace phi {
 namespace tests {
@@ -117,6 +118,7 @@ void TestConv3dBase(const std::vector<IntT>& indices,
     SparseCooTensor out = sparse::Conv3d<T>(dev_ctx_cpu,
                                             x_tensor,
                                             kernel_tensor,
+                                            nullptr,
                                             paddings,
                                             dilations,
                                             strides,
@@ -201,6 +203,7 @@ void TestConv3dBase(const std::vector<IntT>& indices,
   SparseCooTensor d_out = sparse::Conv3d<T>(dev_ctx_gpu,
                                             d_x_tensor,
                                             d_kernel_tensor,
+                                            nullptr,
                                             paddings,
                                             dilations,
                                             strides,

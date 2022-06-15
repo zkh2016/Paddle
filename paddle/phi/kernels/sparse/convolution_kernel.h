@@ -26,35 +26,38 @@ template <typename T, typename Context>
 void Conv3dKernel(const Context& dev_ctx,
                   const SparseCooTensor& x,
                   const DenseTensor& kernel,
+                  const paddle::optional<DenseTensor>& in_rulebook,
                   const std::vector<int>& paddings,
                   const std::vector<int>& dilations,
                   const std::vector<int>& strides,
                   const int groups,
                   const bool subm,
                   SparseCooTensor* out,
-                  DenseTensor* rulebook);
+                  DenseTensor* out_rulebook);
 
 template <typename T, typename Context>
 SparseCooTensor Conv3d(const Context& dev_ctx,
                        const SparseCooTensor& x,
                        const DenseTensor kernel,
+                       const paddle::optional<DenseTensor>& in_rulebook,
                        const std::vector<int>& paddings,
                        const std::vector<int>& dilations,
                        const std::vector<int>& strides,
                        const int groups,
                        const bool subm,
-                       DenseTensor* rulebook) {
+                       DenseTensor* out_rulebook) {
   SparseCooTensor coo;
   Conv3dKernel<T, Context>(dev_ctx,
                            x,
                            kernel,
+                           in_rulebook,
                            paddings,
                            dilations,
                            strides,
                            groups,
                            subm,
                            &coo,
-                           rulebook);
+                           out_rulebook);
   return coo;
 }
 

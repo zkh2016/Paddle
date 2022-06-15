@@ -30,13 +30,14 @@ template <typename T, typename IntT = int>
 void Conv3dCPUKernel(const CPUContext& dev_ctx,
                      const SparseCooTensor& x,
                      const DenseTensor& kernel,
+                     const paddle::optional<DenseTensor>& in_rulebook,
                      const std::vector<int>& paddings,
                      const std::vector<int>& dilations,
                      const std::vector<int>& strides,
                      const int groups,
                      const bool subm,
                      SparseCooTensor* out,
-                     DenseTensor* rulebook) {
+                     DenseTensor* out_rulebook) {
   // update padding and dilation
   // Currently, only support x.layout is NDHWC, groups = 1
   // if x.layout != NDHWC then transpose(x), transpose(weight)
@@ -70,21 +71,25 @@ void Conv3dCPUKernel(const CPUContext& dev_ctx,
       DataType::INT32, {kernel_size}, DataLayout::NCHW);
   DenseTensor counter_per_kernel = phi::Empty(dev_ctx, std::move(counter_meta));
 
-  ProductRuleBook<T, CPUContext, IntT>(dev_ctx,
-                                       x,
-                                       kernel_sizes,
-                                       subm_paddings,
-                                       dilations,
-                                       subm_strides,
-                                       out_dims,
-                                       subm,
-                                       rulebook,
-                                       &counter_per_kernel);
+  if (in_rulebook) {
+    out_rulebook = const_cast<DenseTensor*>(in_rulebook.get_ptr());
+  } else {
+    ProductRuleBook<T, CPUContext, IntT>(dev_ctx,
+                                         x,
+                                         kernel_sizes,
+                                         subm_paddings,
+                                         dilations,
+                                         subm_strides,
+                                         out_dims,
+                                         subm,
+                                         out_rulebook,
+                                         &counter_per_kernel);
 
-  UpdateRulebookAndOutIndex<T, CPUContext, IntT>(
-      dev_ctx, x, kernel_size, out_channels, out_dims, rulebook, out);
+    UpdateRulebookAndOutIndex<T, CPUContext, IntT>(
+        dev_ctx, x, kernel_size, out_channels, out_dims, out_rulebook, out);
+  }
 
-  int n = rulebook->dims()[1];
+  int n = out_rulebook->dims()[1];
   const int* counter_ptr = counter_per_kernel.data<int>();
 
   // 2. gather
@@ -100,7 +105,7 @@ void Conv3dCPUKernel(const CPUContext& dev_ctx,
   T* out_features_ptr = out_features.data<T>();
 
   Gather<T, IntT>(x.non_zero_elements().data<T>(),
-                  rulebook->data<IntT>() + n,
+                  out_rulebook->data<IntT>() + n,
                   n,
                   in_channels,
                   in_features_ptr);
@@ -144,7 +149,7 @@ void Conv3dCPUKernel(const CPUContext& dev_ctx,
   T* out_values_ptr = out->mutable_non_zero_elements()->data<T>();
   memset(out_values_ptr, 0, sizeof(T) * out->nnz() * out_channels);
   Scatter<T, IntT>(out_features_ptr,
-                   rulebook->data<IntT>() + n * 2,
+                   out_rulebook->data<IntT>() + n * 2,
                    n,
                    out_channels,
                    out_values_ptr);
@@ -154,25 +159,27 @@ template <typename T, typename Context>
 void Conv3dKernel(const Context& dev_ctx,
                   const SparseCooTensor& x,
                   const DenseTensor& kernel,
+                  const paddle::optional<DenseTensor>& in_rulebook,
                   const std::vector<int>& paddings,
                   const std::vector<int>& dilations,
                   const std::vector<int>& strides,
                   const int groups,
                   const bool subm,
                   SparseCooTensor* out,
-                  DenseTensor* rulebook) {
+                  DenseTensor* out_rulebook) {
   PD_VISIT_INTEGRAL_TYPES(
       x.non_zero_indices().dtype(), "Conv3dCPUKernel", ([&] {
         Conv3dCPUKernel<T, data_t>(dev_ctx,
                                    x,
                                    kernel,
+                                   in_rulebook,
                                    paddings,
                                    dilations,
                                    strides,
                                    groups,
                                    subm,
                                    out,
-                                   rulebook);
+                                   out_rulebook);
       }));
 }
 

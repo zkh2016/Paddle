@@ -86,7 +86,7 @@ class _Conv3D(Layer):
         #    attr=self._bias_attr, shape=[self._out_channels], is_bias=True)
         self.bias = None
 
-    def forward(self, x):
+    def forward(self, x, rulebook=None):
         out = F.conv._conv3d(x,
                              self.weight,
                              bias=self.bias,
@@ -95,6 +95,7 @@ class _Conv3D(Layer):
                              dilation=self._dilation,
                              groups=self._groups,
                              subm=self._subm,
+                             rulebook=rulebook,
                              data_format=self._data_format)
         return out
 
