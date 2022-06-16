@@ -38,6 +38,7 @@ void Conv3dGPUKernel(const GPUContext& dev_ctx,
                      const bool subm,
                      SparseCooTensor* out,
                      DenseTensor* out_rulebook) {
+  VLOG(4) << "enter conv3d kernel";
   // update padding and dilation
   // Currently, only support x.layout is NDHWC, groups = 1
   // if x.layout != NDHWC then transpose(x), transpose(weight)
@@ -58,6 +59,7 @@ void Conv3dGPUKernel(const GPUContext& dev_ctx,
         kernel.dims(), &subm_paddings, &subm_strides);
   }
 
+  VLOG(4) << "get out shape";
   phi::funcs::sparse::GetOutShape(
       x_dims, kernel_sizes, subm_paddings, dilations, subm_strides, &out_dims);
   const int in_channels = kernel_dims[3];
@@ -79,8 +81,17 @@ void Conv3dGPUKernel(const GPUContext& dev_ctx,
 
   int n = 0;
   if (in_rulebook) {
-    out_rulebook = const_cast<DenseTensor*>(in_rulebook.get_ptr());
+    // out_rulebook = const_cast<DenseTensor*>(in_rulebook.get_ptr());
+    *out_rulebook = *in_rulebook.get_ptr();
+    VLOG(4) << "the in_rulebook is not null: " << out_rulebook->numel()
+            << out_rulebook->dims();
     n = out_rulebook->dims()[1];
+    DenseTensor out_indices =
+        phi::EmptyLike<IntT>(dev_ctx, x.non_zero_indices());
+    DenseTensor out_values = phi::EmptyLike<T>(dev_ctx, x.non_zero_elements());
+    phi::Copy(
+        dev_ctx, x.non_zero_indices(), dev_ctx.GetPlace(), false, &out_indices);
+    out->SetMember(out_indices, out_values, out_dims, true);
   } else {
     n = ProductRuleBook<T, GPUContext, IntT>(dev_ctx,
                                              x,

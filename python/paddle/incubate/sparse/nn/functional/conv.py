@@ -63,17 +63,23 @@ def _conv3d(x,
     dilation = convert_to_list(dilation, dims, 'dilation')
     op_type = "conv3d"
 
-    pre_bias = _C_ops.final_state_sparse_conv3d(x, weight, rulebook, padding,
-                                                dilation, stride, groups, subm)
+    if rulebook is None:
+        print("rulebook is none")
+    else:
+        print("rulebook is not none")
+
+    pre_bias, out_rulebook = _C_ops.final_state_sparse_conv3d(
+        x, weight, rulebook, padding, dilation, stride, groups, subm)
     if bias is not None:
         values = pre_bias.values()
         add_bias = elementwise_add(values, bias, axis=1)
-        return sparse_coo_tensor(pre_bias.indices(),
-                                 add_bias,
-                                 shape=pre_bias.shape,
-                                 stop_gradient=pre_bias.stop_gradient)
+        return sparse_coo_tensor(
+            pre_bias.indices(),
+            add_bias,
+            shape=pre_bias.shape,
+            stop_gradient=pre_bias.stop_gradient), out_rulebook
     else:
-        return pre_bias
+        return pre_bias, out_rulebook
 
 
 def conv3d(x,
@@ -310,14 +316,5 @@ def subm_conv3d(x,
               print(y.shape)
               #(1, 1, 3, 4, 1)
     """
-    return _conv3d(x,
-                   weight,
-                   bias,
-                   stride,
-                   padding,
-                   dilation,
-                   groups,
-                   True,
-                   rulebook=rulebook,
-                   data_format,
-                   name)
+    return _conv3d(x, weight, bias, stride, padding, dilation, groups, True,
+                   rulebook, data_format, name)

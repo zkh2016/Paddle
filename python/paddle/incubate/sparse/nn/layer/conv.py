@@ -87,17 +87,17 @@ class _Conv3D(Layer):
         self.bias = None
 
     def forward(self, x, rulebook=None):
-        out = F.conv._conv3d(x,
-                             self.weight,
-                             bias=self.bias,
-                             stride=self._stride,
-                             padding=self._updated_padding,
-                             dilation=self._dilation,
-                             groups=self._groups,
-                             subm=self._subm,
-                             rulebook=rulebook,
-                             data_format=self._data_format)
-        return out
+        out, out_rulebook = F.conv._conv3d(x,
+                                           self.weight,
+                                           bias=self.bias,
+                                           stride=self._stride,
+                                           padding=self._updated_padding,
+                                           dilation=self._dilation,
+                                           groups=self._groups,
+                                           subm=self._subm,
+                                           rulebook=rulebook,
+                                           data_format=self._data_format)
+        return out, out_rulebook
 
     def extra_repr(self):
         main_str = '{_in_channels}, {_out_channels}, kernel_size={_kernel_size}'

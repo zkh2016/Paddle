@@ -43,7 +43,7 @@ class TestSparseConv(unittest.TestCase):
             correct_out_values = [[5], [11]]
             sparse_input = core.eager.sparse_coo_tensor(indices, values,
                                                         dense_shape, False)
-            out = paddle.incubate.sparse.nn.functional.conv3d(
+            out, _ = paddle.incubate.sparse.nn.functional.conv3d(
                 sparse_input,
                 dense_kernel,
                 bias=paddle.to_tensor(bias, dtype='float32'),
@@ -65,7 +65,7 @@ class TestSparseConv(unittest.TestCase):
             sparse_x = paddle.incubate.sparse.sparse_coo_tensor(
                 indices, values, dense_shape, stop_gradient=True)
             weight = paddle.randn((1, 3, 3, 1, 1), dtype='float32')
-            y = paddle.incubate.sparse.nn.functional.subm_conv3d(
+            y, _ = paddle.incubate.sparse.nn.functional.subm_conv3d(
                 sparse_x, weight)
             assert np.array_equal(sparse_x.indices().numpy(),
                                   y.indices().numpy())
@@ -85,7 +85,7 @@ class TestSparseConv(unittest.TestCase):
 
             sparse_conv3d = paddle.incubate.sparse.nn.Conv3D(
                 1, 1, (1, 3, 3), data_format='NDHWC')
-            sparse_out = sparse_conv3d(sparse_input)
+            sparse_out, _ = sparse_conv3d(sparse_input)
             #test errors
             with self.assertRaises(ValueError):
                 #Currently, only support data_format='NDHWC'
@@ -108,7 +108,7 @@ class TestSparseConv(unittest.TestCase):
             # test extra_repr
             print(subm_conv3d.extra_repr())
 
-            sparse_out = subm_conv3d(sparse_input)
+            sparse_out, rulebook1 = subm_conv3d(sparse_input)
             # the output shape of subm_conv is same as input shape
             assert np.array_equal(indices, sparse_out.indices().numpy())
 
@@ -117,3 +117,6 @@ class TestSparseConv(unittest.TestCase):
                 #Currently, only support data_format='NDHWC'
                 conv3d = paddle.incubate.sparse.nn.SubmConv3D(
                     1, 1, (1, 3, 3), data_format='NCDHW')
+
+            sparse_out, rulebook2 = subm_conv3d(sparse_input, rulebook1)
+            assert np.allclose(rulebook1.numpy(), rulebook2.numpy())

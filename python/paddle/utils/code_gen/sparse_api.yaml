@@ -4,8 +4,8 @@
   kernel :
     func : sparse_conv3d{sparse_coo, dense, dense -> sparse_coo, dense}
     layout : x
+    data_type : x
   optional : in_rulebook
-  intermediate : out_rulebook
   backward : conv3d_grad
 
 - api : coo_to_dense
