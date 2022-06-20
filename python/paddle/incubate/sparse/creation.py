@@ -70,7 +70,8 @@ def sparse_coo_tensor(indices,
                       shape=None,
                       dtype=None,
                       place=None,
-                      stop_gradient=True):
+                      stop_gradient=True,
+                      coalesced=True):
     r"""
     Constructs a sparse ``paddle.Tensor`` in coordinate format according to the indices 
     and values of the specified non-zero elements.
@@ -167,7 +168,7 @@ def sparse_coo_tensor(indices,
                 .format(sparse_dim, dense_dim, len(shape)))
 
     return _C_ops.final_state_sparse_create_sparse_coo_tensor(
-        values, indices, shape)
+        values, indices, shape, coalesced)
 
 
 #TODO: need to support shape is None

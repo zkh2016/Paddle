@@ -63,11 +63,6 @@ def _conv3d(x,
     dilation = convert_to_list(dilation, dims, 'dilation')
     op_type = "conv3d"
 
-    if rulebook is None:
-        print("rulebook is none")
-    else:
-        print("rulebook is not none")
-
     pre_bias, out_rulebook = _C_ops.final_state_sparse_conv3d(
         x, weight, rulebook, padding, dilation, stride, groups, subm)
     if bias is not None:

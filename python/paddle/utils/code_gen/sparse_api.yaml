@@ -15,7 +15,7 @@
   backward : coo_to_dense_grad
 
 - api : create_sparse_coo_tensor
-  args : (Tensor values, Tensor indices, IntArray dense_shape)
+  args : (Tensor values, Tensor indices, IntArray dense_shape, bool coalesced)
   output : Tensor(out)
   kernel :
     func : sparse_coo_tensor{dense, dense -> sparse_coo}
