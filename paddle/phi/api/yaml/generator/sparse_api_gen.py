@@ -24,6 +24,8 @@ class SparseAPI(ForwardAPI):
 
     def __init__(self, api_item_yaml):
         super(SparseAPI, self).__init__(api_item_yaml)
+        print("===========", self.api)
+        print("===========", self.infer_meta)
 
     def gene_api_declaration(self):
         return f"""
