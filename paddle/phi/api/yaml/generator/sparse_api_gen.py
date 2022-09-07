@@ -24,8 +24,6 @@ class SparseAPI(ForwardAPI):
 
     def __init__(self, api_item_yaml):
         super(SparseAPI, self).__init__(api_item_yaml)
-        print("===========", self.api)
-        print("===========", self.infer_meta)
 
     def gene_api_declaration(self):
         return f"""
@@ -156,6 +154,7 @@ class SparseAPI(ForwardAPI):
     auto* dev_ctx = GetDeviceContextByBackend(kernel_result.has_fallback_cpu ? Backend::CPU : kernel_backend);
     auto kernel_context = phi::KernelContext(dev_ctx);
 {output_create}
+{self.gene_infer_meta(kernel_output_names, '')}
 {kernel_context_code}
     phi_kernel(&kernel_context);
   {return_code}"""
