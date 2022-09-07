@@ -103,6 +103,9 @@ void DenseToCooKernel(const Context& dev_ctx,
       ++index;
     }
   }
+
+  MetaTensor meta_out(out);
+  phi::sparse::UnchangedInferMeta(x, &meta_out);
   out->SetMember(indices, values, x_dims, true);
 }
 
@@ -160,6 +163,9 @@ template <typename T, typename Context>
 void CsrToCooKernel(const Context& dev_ctx,
                     const SparseCsrTensor& x,
                     SparseCooTensor* out) {
+  MetaTensor meta_out(out);
+  phi::sparse::UnchangedInferMeta(x, &meta_out);
+
   PD_VISIT_BASE_INTEGRAL_TYPES(x.crows().dtype(), "CsrToCooCPUKernel", ([&] {
                                  CsrToCooCPUKernel<T, data_t>(dev_ctx, x, out);
                                }));
@@ -249,6 +255,8 @@ template <typename T, typename Context>
 void CooToCsrKernel(const Context& dev_ctx,
                     const SparseCooTensor& x,
                     SparseCsrTensor* out) {
+  MetaTensor meta_out(out);
+  phi::sparse::UnchangedInferMeta(x, &meta_out);
   PD_VISIT_BASE_INTEGRAL_TYPES(x.indices().dtype(), "CooToCsrCPUKernel", ([&] {
                                  CooToCsrCPUKernel<T, data_t>(dev_ctx, x, out);
                                }));
@@ -270,8 +278,7 @@ void CooToDenseCPUKernel(const CPUContext& dev_ctx,
   const int64_t dense_dim = x.dense_dim();
 
   const T* x_data = values.data<T>();
-  *out = phi::Empty(dev_ctx,
-                    DenseTensorMeta(x.dtype(), x.dims(), x.values().layout()));
+  dev_ctx.template Alloc<T>(out);
   T* out_data = out->data<T>();
   int64_t base_offset = 1;
   for (int64_t i = 0; i < dense_dim; i++) {
@@ -301,6 +308,8 @@ template <typename T, typename Context>
 void CooToDenseKernel(const Context& dev_ctx,
                       const SparseCooTensor& x,
                       DenseTensor* out) {
+  MetaTensor meta_out(out);
+  phi::sparse::UnchangedInferMeta(x, &meta_out);
   PD_VISIT_BASE_INTEGRAL_TYPES(
       x.indices().dtype(), "CooToDenseCPUKernel", ([&] {
         CooToDenseCPUKernel<T, data_t>(dev_ctx, x, out);
@@ -375,7 +384,7 @@ PD_REGISTER_KERNEL(coo_to_dense,
                    int,
                    int64_t) {}
 
-PD_REGISTER_KERNEL(sparse_csr_to_dense,
+PD_REGISTER_KERNEL(csr_to_dense,
                    CPU,
                    ALL_LAYOUT,
                    phi::sparse::CsrToDenseKernel,

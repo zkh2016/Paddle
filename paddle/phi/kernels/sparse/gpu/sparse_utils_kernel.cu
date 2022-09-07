@@ -172,6 +172,9 @@ void DenseToCooKernel(const Context& dev_ctx,
                                                      temp_indexs_ptr,
                                                      indices_data,
                                                      sparse_data);
+
+  MetaTensor meta_out(out);
+  phi::sparse::UnchangedInferMeta(x, &meta_out);
   out->SetMember(indices, values, x_dims, true);
 }
 
@@ -277,6 +280,8 @@ template <typename T, typename Context>
 void CsrToCooKernel(const Context& dev_ctx,
                     const SparseCsrTensor& x,
                     SparseCooTensor* out) {
+  MetaTensor meta_out(out);
+  phi::sparse::UnchangedInferMeta(x, &meta_out);
   PD_VISIT_BASE_INTEGRAL_TYPES(x.crows().dtype(), "CsrToCooGPUKernel", ([&] {
                                  CsrToCooGPUKernel<T, data_t>(dev_ctx, x, out);
                                }));
@@ -418,6 +423,8 @@ template <typename T, typename Context>
 void CooToCsrKernel(const Context& dev_ctx,
                     const SparseCooTensor& x,
                     SparseCsrTensor* out) {
+  MetaTensor meta_out(out);
+  phi::sparse::UnchangedInferMeta(x, &meta_out);
   PD_VISIT_BASE_INTEGRAL_TYPES(x.indices().dtype(), "CooToCsrGPUKernel", ([&] {
                                  CooToCsrGPUKernel<T, data_t>(dev_ctx, x, out);
                                }));
@@ -461,8 +468,8 @@ void CooToDenseGPUKernel(const GPUContext& dev_ctx,
 
   const auto place = dev_ctx.GetPlace();
   const T* x_data = values.data<T>();
-  *out = phi::Empty(
-      dev_ctx, phi::DenseTensorMeta(x.dtype(), x.dims(), x.values().layout()));
+  dev_ctx.template Alloc<T>(out);
+
   T* out_data = out->data<T>();
   int64_t base_offset = 1;
   for (int64_t i = 0; i < dense_dim; i++) {
@@ -505,6 +512,8 @@ template <typename T, typename Context>
 void CooToDenseKernel(const Context& dev_ctx,
                       const SparseCooTensor& x,
                       DenseTensor* out) {
+  MetaTensor meta_out(out);
+  phi::sparse::UnchangedInferMeta(x, &meta_out);
   PD_VISIT_BASE_INTEGRAL_TYPES(
       x.indices().dtype(), "CooToDenseGPUKernel", ([&] {
         CooToDenseGPUKernel<T, data_t>(dev_ctx, x, out);

@@ -18,6 +18,7 @@ limitations under the License. */
 #include "paddle/phi/core/dense_tensor.h"
 #include "paddle/phi/core/sparse_coo_tensor.h"
 #include "paddle/phi/core/sparse_csr_tensor.h"
+#include "paddle/phi/infermeta/sparse/unary.h"
 #include "paddle/phi/kernels/empty_kernel.h"
 
 namespace phi {
@@ -79,10 +80,15 @@ void DenseToCsrKernel(const Context& dev_ctx,
                     true,
                     phi::errors::InvalidArgument(
                         "SparseCsrTensor only support 2-D or 3-D Tensor."));
+
   const int64_t sparse_dim = x_dims.size() == 2 ? 2 : 3;
   DenseTensor indices;
   DenseTensor values;
   SparseCooTensor coo(indices, values, x.dims());
+  MetaTensor meta_out_coo(&coo);
+  phi::sparse::UnchangedInferMeta(x, &meta_out_coo);
+  MetaTensor meta_out(out);
+  phi::sparse::UnchangedInferMeta(x, &meta_out);
   DenseToCooKernel<T, Context>(dev_ctx, x, sparse_dim, &coo);
   CooToCsrKernel<T, Context>(dev_ctx, coo, out);
 }
@@ -117,7 +123,11 @@ void CsrToDenseKernel(const Context& dev_ctx,
   DenseTensor indices;
   DenseTensor values;
   SparseCooTensor coo(indices, values, x.dims());
+  MetaTensor meta_out_coo(&coo);
+  phi::sparse::UnchangedInferMeta(x, &meta_out_coo);
   CsrToCooKernel<T, Context>(dev_ctx, x, &coo);
+  MetaTensor meta_out(out);
+  phi::sparse::UnchangedInferMeta(x, &meta_out);
   CooToDenseKernel<T, Context>(dev_ctx, coo, out);
 }
 

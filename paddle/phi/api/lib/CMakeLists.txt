@@ -375,8 +375,13 @@ cc_library(
 cc_library(
   sparse_api_custom_impl
   SRCS sparse_api_custom_impl.cc
-  DEPS phi_tensor_raw phi kernel_dispatch api_gen_utils phi_data_transform
-       tensor_copy)
+  DEPS phi_tensor_raw
+       phi
+       kernel_dispatch
+       api_gen_utils
+       phi_data_transform
+       tensor_copy
+       sparse_infermeta)
 
 cc_library(
   phi_function_api
@@ -426,6 +431,7 @@ cc_library(
        api_gen_utils
        kernel_dispatch
        infermeta
+       sparse_infermeta
        sparse_api
        strings_api)
 cc_library(
