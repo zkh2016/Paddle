@@ -35,9 +35,16 @@ void SparseCooTensorInferMeta(const MetaTensor& values,
 }
 
 void ValuesInferMeta(const MetaTensor& x, MetaTensor* out) {
-  out->set_dims({-1, x.dims()[-1]});
+  const auto& x_dims = x.dims();
+  out->set_dims({-1, x_dims[x_dims.size() - 1]});
   out->set_dtype(x.dtype());
   out->set_layout(x.layout());
+}
+
+void IndicesInferMeta(const MetaTensor& x, MetaTensor* out) {
+  out->set_dims({-1});
+  out->set_dtype(DataType::INT32);
+  out->set_layout(DataLayout::NCHW);
 }
 
 }  // namespace sparse
