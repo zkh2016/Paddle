@@ -20,7 +20,24 @@ namespace phi {
 namespace sparse {
 
 void UnchangedInferMeta(const MetaTensor& x, MetaTensor* out) {
-  out->share_meta(x);
+  out->set_dims(x.dims());
+  out->set_dtype(x.dtype());
+  out->set_layout(x.layout());
+}
+
+void SparseCooTensorInferMeta(const MetaTensor& values,
+                              const MetaTensor& indices,
+                              const IntArray& dense_shape,
+                              MetaTensor* out) {
+  out->set_dims(phi::make_ddim(dense_shape.GetData()));
+  out->set_dtype(values.dtype());
+  out->set_layout(values.layout());
+}
+
+void ValuesInferMeta(const MetaTensor& x, MetaTensor* out) {
+  out->set_dims({-1, x.dims()[-1]});
+  out->set_dtype(x.dtype());
+  out->set_layout(x.layout());
 }
 
 }  // namespace sparse

@@ -23,6 +23,10 @@ limitations under the License. */
 namespace phi {
 namespace sparse {
 
+void ElementwiseInferMeta(const MetaTensor& x,
+                          const MetaTensor& y,
+                          MetaTensor* out);
+
 void Conv3dInferMeta(const MetaTensor& x,
                      const MetaTensor& kernel,
                      const std::vector<int>& paddings,
@@ -31,7 +35,9 @@ void Conv3dInferMeta(const MetaTensor& x,
                      const int groups,
                      const bool subm,
                      const std::string& key,
-                     MetaTensor* out);
+                     MetaTensor* out,
+                     MetaTensor* rulebook,
+                     MetaTensor* counter);
 
 void Pool3dInferMeta(const MetaTensor& x,
                      const std::vector<int>& kernel_sizes,

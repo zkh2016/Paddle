@@ -17,6 +17,16 @@ limitations under the License. */
 namespace phi {
 namespace sparse {
 
+void ElementwiseInferMeta(const MetaTensor& x,
+                          const MetaTensor& y,
+                          MetaTensor* out) {
+  if (x.dims() == y.dims()) {
+    out->set_dims(x.dims());
+  }
+  out->set_dtype(x.dtype());
+  out->set_layout(x.layout());
+}
+
 inline void GetOutShape(const DDim& x_dims,
                         const std::vector<int>& kernel_sizes,
                         const std::vector<int>& paddings,
@@ -60,7 +70,9 @@ void Conv3dInferMeta(const MetaTensor& x,
                      const int groups,
                      const bool subm,
                      const std::string& key,
-                     MetaTensor* out) {
+                     MetaTensor* out,
+                     MetaTensor* rulebook,
+                     MetaTensor* counter) {
   const auto& x_dims = x.dims();
   const auto& kernel_dims = kernel.dims();
   DDim out_dims = {1, 1, 1, 1, 1};
@@ -83,6 +95,14 @@ void Conv3dInferMeta(const MetaTensor& x,
   out->set_dtype(x.dtype());
   out->set_dims(out_dims);
   out->set_layout(x.layout());
+
+  rulebook->set_dtype(DataType::INT32);
+  rulebook->set_layout(DataLayout::NCHW);
+  rulebook->set_dims({1});
+
+  counter->set_dtype(DataType::INT32);
+  counter->set_layout(DataLayout::NCHW);
+  counter->set_dims({1});
 }
 
 inline const std::vector<int> PoolResetKernel(
