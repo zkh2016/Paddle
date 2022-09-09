@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License. */
 
 #include "paddle/phi/infermeta/sparse/binary.h"
+#include "paddle/phi/infermeta/binary.h"
 
 namespace phi {
 namespace sparse {
@@ -20,11 +21,15 @@ namespace sparse {
 void ElementwiseInferMeta(const MetaTensor& x,
                           const MetaTensor& y,
                           MetaTensor* out) {
-  if (x.dims() == y.dims()) {
-    out->set_dims(x.dims());
-  }
-  out->set_dtype(x.dtype());
-  out->set_layout(x.layout());
+  // if (x.dims() == y.dims()) {
+  //   out->set_dims(x.dims());
+  // }
+  // out->set_dtype(x.dtype());
+  // out->set_layout(x.layout());
+  std::cout << x.dims() << " " << x.dtype() << " " << x.layout() << std::endl;
+  phi::ElementwiseInferMeta(x, y, out);
+  std::cout << out->dims() << " " << out->dtype() << " " << out->layout()
+            << std::endl;
 }
 
 inline void GetOutShape(const DDim& x_dims,

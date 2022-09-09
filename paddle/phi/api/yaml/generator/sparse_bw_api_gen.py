@@ -116,6 +116,7 @@ def source_include(header_file_path):
 
 #include "paddle/phi/infermeta/sparse/unary.h"
 #include "paddle/phi/infermeta/sparse/binary.h"
+#include "paddle/phi/infermeta/sparse/backward.h"
 """
 
 

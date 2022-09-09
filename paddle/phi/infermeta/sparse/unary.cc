@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License. */
 
 #include "paddle/phi/infermeta/sparse/unary.h"
+#include "paddle/phi/infermeta/unary.h"
 
 #include "paddle/phi/core/infermeta_utils.h"
 
@@ -47,10 +48,11 @@ void IndicesInferMeta(const MetaTensor& x, MetaTensor* out) {
   out->set_layout(DataLayout::NCHW);
 }
 
-void ToSparseCooInferMeta(const MetaTensor& x,
-                          int64_t sparse_dim,
-                          MetaTensor* out) {
-  UnchangedInferMeta(x, out);
+void CastInferMeta(const MetaTensor& x,
+                   const DataType index_dtype,
+                   const DataType value_dtype,
+                   MetaTensor* out) {
+  phi::CastInferMeta(x, value_dtype, out);
 }
 
 }  // namespace sparse

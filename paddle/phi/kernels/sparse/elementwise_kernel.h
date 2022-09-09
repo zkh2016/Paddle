@@ -17,6 +17,7 @@ limitations under the License. */
 #include "paddle/phi/core/dense_tensor.h"
 #include "paddle/phi/core/sparse_coo_tensor.h"
 #include "paddle/phi/core/sparse_csr_tensor.h"
+#include "paddle/phi/infermeta/sparse/unary.h"
 
 namespace phi {
 namespace sparse {
@@ -59,6 +60,8 @@ namespace sparse {
     DenseTensor indices;                                             \
     DenseTensor non_zero_elements;                                   \
     SparseCooTensor out(indices, non_zero_elements, x.dims());       \
+    MetaTensor meta_out(out);                                        \
+    phi::sparse::UnchangedInferMeta(x, &meta_out);                   \
     ElementWise##name##CooKernel<T, Context>(dev_ctx, x, y, &out);   \
     return out;                                                      \
   }

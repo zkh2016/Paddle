@@ -89,6 +89,8 @@
 - api : cast
   args : (Tensor x, DataType index_dtype=DataType::UNDEFINED, DataType value_dtype=DataType::UNDEFINED)
   output : Tensor(out)
+  infer_meta :
+    func : CastInferMeta
   kernel :
     func : cast_coo{sparse_coo -> sparse_coo},
            cast_csr{sparse_csr -> sparse_csr}
@@ -121,6 +123,9 @@
 - api : divide_scalar
   args : (Tensor x, float scalar)
   output : Tensor(out)
+  infer_meta :
+    func : UnchangedInferMeta
+    param : [x]
   kernel :
     func : divide_coo_scalar{sparse_coo -> sparse_coo},
            divide_csr_scalar{sparse_csr -> sparse_csr}
@@ -140,6 +145,9 @@
 - api : leaky_relu
   args : (Tensor x, float alpha)
   output : Tensor(out)
+  infer_meta :
+    func : UnchangedInferMeta
+    param : [x]
   kernel :
     func : leaky_relu_coo{sparse_coo -> sparse_coo},
            leaky_relu_csr{sparse_csr -> sparse_csr}
@@ -171,6 +179,9 @@
 - api : pow
   args : (Tensor x, float factor)
   output : Tensor(out)
+  infer_meta :
+    func : UnchangedInferMeta
+    param : [x]
   kernel :
     func : pow_coo{sparse_coo -> sparse_coo},
            pow_csr{sparse_csr -> sparse_csr}
@@ -315,7 +326,8 @@
   args : (Tensor x, int64_t sparse_dim)
   output : Tensor(out)
   infer_meta :
-    func : ToSparseCooInferMeta
+    func : UnchangedInferMeta
+    param : [x]
   kernel :
     func : dense_to_coo { dense -> sparse_coo },
            csr_to_coo { sparse_csr -> sparse_coo}

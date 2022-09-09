@@ -91,8 +91,8 @@ void AddmmKernelImpl(const Context& dev_ctx,
           "The shape of Input(x) and Input(y) is not suitable for matmul "
           "opetation, x_dim[-1] must be eaqual to y_dim[-2]."));
 
-  MetaTensor meta_out(out);
-  phi::sparse::UnchangedInferMeta(input, &meta_out);
+  // MetaTensor meta_out(out);
+  // phi::sparse::UnchangedInferMeta(input, &meta_out);
 
   phi::Copy(dev_ctx, input, dev_ctx.GetPlace(), false, out);
 
