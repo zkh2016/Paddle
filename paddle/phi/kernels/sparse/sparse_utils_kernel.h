@@ -66,6 +66,8 @@ SparseCsrTensor CooToCsr(const Context& dev_ctx, const SparseCooTensor& x) {
   DenseTensor cols;
   DenseTensor non_zero_elements;
   SparseCsrTensor csr(crows, cols, non_zero_elements, x.dims());
+  MetaTensor meta_out(&csr);
+  phi::sparse::UnchangedInferMeta(x, &meta_out);
   CooToCsrKernel<T, Context>(dev_ctx, x, &csr);
   return csr;
 }
@@ -85,9 +87,7 @@ void DenseToCsrKernel(const Context& dev_ctx,
   DenseTensor indices;
   DenseTensor values;
   SparseCooTensor coo(indices, values, x.dims());
-  MetaTensor meta_out_coo(&coo);
-  phi::sparse::UnchangedInferMeta(x, &meta_out_coo);
-  MetaTensor meta_out(out);
+  MetaTensor meta_out(&coo);
   phi::sparse::UnchangedInferMeta(x, &meta_out);
   DenseToCooKernel<T, Context>(dev_ctx, x, sparse_dim, &coo);
   CooToCsrKernel<T, Context>(dev_ctx, coo, out);
@@ -99,6 +99,8 @@ SparseCsrTensor DenseToCsr(const Context& dev_ctx, const DenseTensor& x) {
   DenseTensor cols;
   DenseTensor non_zero_elements;
   SparseCsrTensor csr(crows, cols, non_zero_elements, x.dims());
+  MetaTensor meta_out(&csr);
+  phi::sparse::UnchangedInferMeta(x, &meta_out);
   DenseToCsrKernel<T, Context>(dev_ctx, x, &csr);
   return csr;
 }
@@ -123,11 +125,9 @@ void CsrToDenseKernel(const Context& dev_ctx,
   DenseTensor indices;
   DenseTensor values;
   SparseCooTensor coo(indices, values, x.dims());
-  MetaTensor meta_out_coo(&coo);
-  phi::sparse::UnchangedInferMeta(x, &meta_out_coo);
-  CsrToCooKernel<T, Context>(dev_ctx, x, &coo);
-  MetaTensor meta_out(out);
+  MetaTensor meta_out(&coo);
   phi::sparse::UnchangedInferMeta(x, &meta_out);
+  CsrToCooKernel<T, Context>(dev_ctx, x, &coo);
   CooToDenseKernel<T, Context>(dev_ctx, coo, out);
 }
 

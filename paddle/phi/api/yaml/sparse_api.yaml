@@ -314,6 +314,8 @@
 - api : to_sparse_coo
   args : (Tensor x, int64_t sparse_dim)
   output : Tensor(out)
+  infer_meta :
+    func : ToSparseCooInferMeta
   kernel :
     func : dense_to_coo { dense -> sparse_coo },
            csr_to_coo { sparse_csr -> sparse_coo}

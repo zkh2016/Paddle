@@ -47,5 +47,11 @@ void IndicesInferMeta(const MetaTensor& x, MetaTensor* out) {
   out->set_layout(DataLayout::NCHW);
 }
 
+void ToSparseCooInferMeta(const MetaTensor& x,
+                          int64_t sparse_dim,
+                          MetaTensor* out) {
+  UnchangedInferMeta(x, out);
+}
+
 }  // namespace sparse
 }  // namespace phi
