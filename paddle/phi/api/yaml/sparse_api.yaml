@@ -247,6 +247,9 @@
 - api : softmax
   args : (Tensor x, int axis=-1)
   output : Tensor(out)
+  infer_meta :
+    func : UnchangedInferMeta
+    param : [x]
   kernel :
     func : softmax_csr{sparse_csr -> sparse_csr}
     layout : x
@@ -371,6 +374,8 @@
 - api: addmm
   args : (Tensor input, Tensor x, Tensor y, float alpha=1.0, float beta=1.0)
   output : Tensor(out)
+  infer_meta :
+    func : AddmmInferMeta
   kernel :
     func : addmm_csr_dense {dense, sparse_csr, dense -> dense},
            addmm_csr_csr {sparse_csr, sparse_csr, sparse_csr -> sparse_csr},
@@ -411,6 +416,9 @@
 - api: masked_matmul
   args : (Tensor x, Tensor y, Tensor mask)
   output : Tensor(out)
+  infer_meta :
+    func : MatmulInferMeta
+    param : [x, y]
   kernel :
     func : masked_matmul_csr{dense, dense, sparse_csr -> sparse_csr}
     layout : x
@@ -419,6 +427,8 @@
 - api: matmul
   args : (Tensor x, Tensor y)
   output : Tensor(out)
+  infer_meta :
+    func : MatmulInferMeta
   kernel :
     func : matmul_csr_dense {sparse_csr, dense -> dense},
            matmul_csr_csr {sparse_csr, sparse_csr -> sparse_csr},
@@ -430,6 +440,8 @@
 - api: maxpool
   args : (Tensor x, int[] kernel_sizes, int[] paddings, int[] dilations, int[] strides)
   output : Tensor(out), Tensor(rulebook), Tensor(counter)
+  infer_meta :
+    func : Pool3dInferMeta
   kernel :
     func : maxpool_coo{sparse_coo -> sparse_coo, dense, dense}
     layout : x
@@ -439,6 +451,8 @@
 - api: mv
   args : (Tensor x, Tensor vec)
   output : Tensor(out)
+  infer_meta :
+    func : MvInferMeta
   kernel :
     func : mv_coo{sparse_coo, dense -> dense},
            mv_csr{sparse_csr, dense -> dense}

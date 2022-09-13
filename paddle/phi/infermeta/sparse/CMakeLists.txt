@@ -1,6 +1,6 @@
 cc_library(
   sparse_infermeta
-  SRCS unary.cc binary.cc
+  SRCS unary.cc binary.cc ternary.cc
   DEPS convert_utils infermeta_utils infermeta)
 
 cc_library(
