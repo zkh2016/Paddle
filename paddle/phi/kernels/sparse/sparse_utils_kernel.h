@@ -37,6 +37,8 @@ SparseCooTensor DenseToCoo(const Context& dev_ctx,
   DenseTensor indices;
   DenseTensor values;
   SparseCooTensor coo(indices, values, x.dims());
+  MetaTensor meta_out(&coo);
+  phi::sparse::UnchangedInferMeta(x, &meta_out);
   DenseToCooKernel<T, Context>(dev_ctx, x, sparse_dim, &coo);
   return coo;
 }
@@ -51,6 +53,8 @@ SparseCooTensor CsrToCoo(const Context& dev_ctx, const SparseCsrTensor& x) {
   DenseTensor indices;
   DenseTensor values;
   SparseCooTensor coo(indices, values, x.dims());
+  MetaTensor meta_out(&coo);
+  phi::sparse::UnchangedInferMeta(x, &meta_out);
   CsrToCooKernel<T, Context>(dev_ctx, x, &coo);
   return coo;
 }

@@ -214,16 +214,12 @@ void ElementWiseDivideCooGradCPUKernel(const Context& dev_ctx,
   if (dx) {
     //    dout/y
     AllocCooPtr<T, IntT>(dev_ctx, x, dx);
-    std::cout << x.dtype() << " " << dout.dtype() << " dx " << dx->dtype()
-              << std::endl;
     sparse::ElementWiseDivideCooKernel<T, Context>(dev_ctx, dout, y, dx);
   }
 
   if (dy) {
     //    -dout * out / y
     AllocCooPtr<T, IntT>(dev_ctx, y, dy);
-    std::cout << y.dtype() << " " << dout.dtype() << " dy " << dy->dtype()
-              << std::endl;
     Copy(dev_ctx, dout, dev_ctx.GetPlace(), false, dy);
     phi::NegativeKernel<T, Context>(
         dev_ctx, dout.values(), dy->mutable_values());

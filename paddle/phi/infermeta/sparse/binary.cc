@@ -26,10 +26,7 @@ void ElementwiseInferMeta(const MetaTensor& x,
   // }
   // out->set_dtype(x.dtype());
   // out->set_layout(x.layout());
-  std::cout << x.dims() << " " << x.dtype() << " " << x.layout() << std::endl;
   phi::ElementwiseInferMeta(x, y, out);
-  std::cout << out->dims() << " " << out->dtype() << " " << out->layout()
-            << std::endl;
 }
 
 inline void GetOutShape(const DDim& x_dims,
