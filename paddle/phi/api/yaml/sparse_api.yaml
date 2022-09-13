@@ -202,6 +202,9 @@
 - api : relu6
   args : (Tensor x, float threshold)
   output : Tensor(out)
+  infer_meta :
+    func : UnchangedInferMeta
+    param : [x]
   kernel :
     func : relu6_coo{sparse_coo -> sparse_coo},
            relu6_csr{sparse_csr -> sparse_csr}
@@ -211,6 +214,9 @@
 - api : scale
   args : (Tensor x, float scale, float bias, bool bias_after_scale)
   output : Tensor(out)
+  infer_meta :
+    func : UnchangedInferMeta
+    param : [x]
   kernel :
     func : scale_coo{sparse_coo -> sparse_coo},
            scale_csr{sparse_csr -> sparse_csr}

@@ -187,23 +187,26 @@ class SparseAPI(ForwardAPI):
             else:
                 param_code = param_code + str(param) + ", "
 
+        PREFIX_META_TENSOR_NAME = 'meta_'
+
         for i, out_name in enumerate(kernel_output_names):
             if self.outputs['types'][i] == 'std::vector<Tensor>':
                 meta_tensor_code = meta_tensor_code + f"""
-{code_indent}  auto {out_name}_vec = MakeMetaTensor({out_name});
-{code_indent}  std::vector<phi::MetaTensor*> {out_name}_metas({out_name}_vec.size());
-{code_indent}  for (size_t i = 0; i < {out_name}_vec.size(); ++i) {{
-{code_indent}    {out_name}_metas[i] = {out_name}[i] ? &{out_name}_vec[i] : nullptr;
+{code_indent}  auto {out_name}_{PREFIX_META_TENSOR_NAME}vec = MakeMetaTensor({out_name});
+{code_indent}  std::vector<phi::MetaTensor*> {out_name}_metas({out_name}_{PREFIX_META_TENSOR_NAME}vec.size());
+{code_indent}  for (size_t i = 0; i < {out_name}_{PREFIX_META_TENSOR_NAME}vec.size(); ++i) {{
+{code_indent}    {out_name}_metas[i] = {out_name}[i] ? &{out_name}_{PREFIX_META_TENSOR_NAME}vec[i] : nullptr;
 {code_indent}  }}"""
 
                 param_code = param_code + out_name + '_metas, '
             else:
                 meta_tensor_code = meta_tensor_code + code_indent + "  phi::MetaTensor " + out_name.replace(
-                    'kernel_', '') + "(" + out_name + ");\n"
+                    'kernel_',
+                    PREFIX_META_TENSOR_NAME) + "(" + out_name + ");\n"
                 if len(kernel_output_names) == 1:
-                    param_code = param_code + f"&{out_name.replace('kernel_', '')}, "
+                    param_code = param_code + f"&{out_name.replace('kernel_', PREFIX_META_TENSOR_NAME)}, "
                 else:
-                    param_code = param_code + f"{out_name} ? &{out_name.replace('kernel_', '')} : nullptr, "
+                    param_code = param_code + f"{out_name} ? &{out_name.replace('kernel_', PREFIX_META_TENSOR_NAME)} : nullptr, "
 
         param_code = param_code[:-2]
         return f"""{meta_tensor_code}
