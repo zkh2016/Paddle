@@ -396,6 +396,9 @@
 - api: full_like
   args : (Tensor x, Scalar value, DataType dtype=DataType::UNDEFINED)
   output : Tensor(out)
+  infer_meta :
+    func : CreateLikeInferMeta 
+    param : [x, dtype]
   kernel :
     func : coo_full_like{sparse_coo -> sparse_coo},
            csr_full_like{sparse_csr -> sparse_csr}

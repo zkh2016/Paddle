@@ -20,6 +20,10 @@ limitations under the License. */
 namespace phi {
 namespace sparse {
 
+void CreateLikeInferMeta(const MetaTensor& x, DataType dtype, MetaTensor* out) {
+  phi::CreateLikeInferMeta(x, dtype, out);
+}
+
 void UnchangedInferMeta(const MetaTensor& x, MetaTensor* out) {
   out->set_dims(x.dims());
   out->set_dtype(x.dtype());
