@@ -24,6 +24,12 @@ KernelSignature SparseSparseCooTensorOpArgumentMapping(
       "sparse_coo_tensor", {"values", "indices"}, {"dense_shape"}, {"out"});
 }
 
+KernelSignature SparseSparseCooTensorGradOpArgumentMapping(
+    const ArgumentMappingContext& ctx) {
+  return KernelSignature(
+      "sparse_coo_tensor_grad", {"indices", "out@GRAD"}, {}, {"values@GRAD"});
+}
+
 KernelSignature SparseValuesOpArgumentMapping(
     const ArgumentMappingContext& ctx) {
   if (ctx.IsSparseCooTensorInput("x")) {
@@ -110,6 +116,10 @@ KernelSignature SparseBatchNormOpArgumentMapping(
 PD_REGISTER_BASE_KERNEL_NAME(sparse_sparse_coo_tensor, sparse_coo_tensor);
 PD_REGISTER_ARG_MAPPING_FN(sparse_sparse_coo_tensor,
                            phi::SparseSparseCooTensorOpArgumentMapping);
+PD_REGISTER_BASE_KERNEL_NAME(sparse_sparse_coo_tensor_grad,
+                             sparse_coo_tensor_grad);
+PD_REGISTER_ARG_MAPPING_FN(sparse_sparse_coo_tensor_grad,
+                           phi::SparseSparseCooTensorGradOpArgumentMapping);
 
 PD_REGISTER_BASE_KERNEL_NAME(sparse_values, values_coo);
 PD_REGISTER_ARG_MAPPING_FN(sparse_values, phi::SparseValuesOpArgumentMapping);

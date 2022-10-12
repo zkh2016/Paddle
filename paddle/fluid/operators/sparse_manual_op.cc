@@ -28,6 +28,8 @@ limitations under the License. */
 namespace paddle {
 namespace operators {
 
+using paddle::framework::GradVarName;
+
 class SparseSparseCooTensorOpMaker : public framework::OpProtoAndCheckerMaker {
  public:
   void Make() override {
@@ -227,15 +229,58 @@ DECLARE_INFER_SHAPE_FUNCTOR(sparse_batch_norm,
                             SparseBatchNormInferShapeFunctor,
                             PD_INFER_META(phi::BatchNormInferMeta));
 
+/********grad op********/
+template <typename T>
+class SparseSparseCooTensorGradOpMaker
+    : public framework::SingleGradOpMaker<T> {
+ public:
+  using framework::SingleGradOpMaker<T>::SingleGradOpMaker;
+
+ protected:
+  void Apply(GradOpPtr<T> grad_op) const override {
+    grad_op->SetType("sparse_sparse_coo_tensor_grad");
+
+    grad_op->SetInput("indices", this->Input("indices"));
+    grad_op->SetInput(GradVarName("out"), this->OutputGrad("out"));
+
+    grad_op->SetOutput(GradVarName("values"), this->InputGrad("values"));
+
+    // grad_op->SetAttrMap(this->Attrs());
+  }
+};
+
+class SparseSparseCooTensorGradOp : public framework::OperatorWithKernel {
+ public:
+  using framework::OperatorWithKernel::OperatorWithKernel;
+
+ protected:
+  framework::OpKernelType GetExpectedKernelType(
+      const framework::ExecutionContext& ctx) const override {
+    auto data_type = framework::OperatorWithKernel::IndicateVarDataType(
+        ctx, GradVarName("out"));
+    return framework::OpKernelType(data_type, ctx.GetPlace());
+  }
+};
+
+DECLARE_INFER_SHAPE_FUNCTOR(sparse_sparse_coo_tensor_grad,
+                            SparseSparseCooTensorGradInferShapeFunctor,
+                            PD_INFER_META(phi::UnchangedInferMeta));
+
+DECLARE_NO_NEED_BUFFER_VARS_INFERER(
+    SparseSparseCooTensorGradNoNeedBufferVarInferer, "indices");
+
 }  // namespace operators
 }  // namespace paddle
 
 namespace ops = paddle::operators;
 
-REGISTER_OPERATOR(sparse_sparse_coo_tensor,
-                  ops::SparseSparseCooTensorOp,
-                  ops::SparseSparseCooTensorOpMaker,
-                  ops::SparseSparseCooTensorInferShapeFunctor);
+REGISTER_OPERATOR(
+    sparse_sparse_coo_tensor,
+    ops::SparseSparseCooTensorOp,
+    ops::SparseSparseCooTensorOpMaker,
+    ops::SparseSparseCooTensorGradOpMaker<paddle::framework::OpDesc>,
+    ops::SparseSparseCooTensorGradOpMaker<paddle::imperative::OpBase>,
+    ops::SparseSparseCooTensorInferShapeFunctor);
 
 REGISTER_OPERATOR(sparse_values,
                   ops::SparseValuesOp,
@@ -271,3 +316,12 @@ REGISTER_OPERATOR(sparse_batch_norm,
                   ops::SparseBatchNormOp,
                   ops::SparseBatchNormOpMaker,
                   ops::SparseBatchNormInferShapeFunctor);
+
+/****register grad op*********/
+REGISTER_OPERATOR(
+    sparse_sparse_coo_tensor_grad,
+    ops::SparseSparseCooTensorGradOp,
+    paddle::framework::EmptyGradOpMaker<paddle::framework::OpDesc>,
+    paddle::framework::EmptyGradOpMaker<paddle::imperative::OpBase>,
+    ops::SparseSparseCooTensorGradNoNeedBufferVarInferer,
+    ops::SparseSparseCooTensorGradInferShapeFunctor);
