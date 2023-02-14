@@ -80,7 +80,12 @@ CUSPARSE_ROUTINE_EACH_R2(DECLARE_DYNAMIC_LOAD_CUSPARSE_WRAP)
 #define CUSPARSE_ROUTINE_EACH_R3(__macro) \
   __macro(cusparseDnMatSetStridedBatch);  \
   __macro(cusparseCooSetStridedBatch);    \
-  __macro(cusparseCsrSetStridedBatch);
+  __macro(cusparseCsrSetStridedBatch);    \
+  __macro(cusparseBsrSetStridedBatch);    \
+  __macro(cusparseCreateBsr);             \
+  __macro(cusparseScsr2gebsr_bufferSize); \
+  __macro(cusparseXcsr2gebsrNnz);         \
+  __macro(cusparseScsr2gebsr);
 
 CUSPARSE_ROUTINE_EACH_R3(DECLARE_DYNAMIC_LOAD_CUSPARSE_WRAP)
 #endif
