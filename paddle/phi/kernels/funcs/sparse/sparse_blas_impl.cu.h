@@ -24,6 +24,8 @@
 #include "paddle/phi/core/sparse_coo_tensor.h"
 #include "paddle/phi/core/sparse_csr_tensor.h"
 #include "paddle/phi/core/visit_type.h"
+#include "paddle/phi/kernels/cast_kernel.h"
+#include "paddle/phi/kernels/empty_kernel.h"
 
 namespace phi {
 namespace funcs {
@@ -119,6 +121,7 @@ inline void CreateBsrDescriptor(const phi::SparseCsrTensor& x,
                                 const phi::GPUContext& dev_ctx,
                                 const int block_dim,
                                 cusparseSpMatDescr_t* descriptor) {
+  std::cout << 10 << std::endl;
   std::vector<int64_t> xdim_vec = phi::vectorize(x.dims());
   auto x_ndims = xdim_vec.size();
   PADDLE_ENFORCE_GE(
@@ -132,6 +135,7 @@ inline void CreateBsrDescriptor(const phi::SparseCsrTensor& x,
   for (int i = 0; i < x_ndims - 2; i++) {
     batch_size *= xdim_vec[i];
   }
+  std::cout << 11 << std::endl;
   PADDLE_ENFORCE_EQ(x.non_zero_crows().numel(),
                     batch_size * (M + 1),
                     phi::errors::PreconditionNotMet(
@@ -140,27 +144,32 @@ inline void CreateBsrDescriptor(const phi::SparseCsrTensor& x,
   const IntT* crows_data = x.non_zero_crows().data<IntT>();
   const IntT* cols_data = x.non_zero_cols().data<IntT>();
   const T* values_data = x.non_zero_elements().data<T>();
+  std::cout << 12 << std::endl;
+  const int num_brows = M / block_dim;
+  const int num_bcols = N / block_dim;
+  std::cout << num_brows << " " << num_bcols << " " << block_dim << " "
+            << sizeof(IntT) << std::endl;
 
   int64_t batch_nnz = x.nnz() / batch_size;
   cudaDataType_t gpu_type = GetGpuDataType<T>();
   dev_ctx.CusparseCall([&](cusparseHandle_t handle) {
-    const int num_brows = M / block_dim;
-    const int num_bcols = N / block_dim;
     phi::dynload::cusparseCreateBsr(descriptor,
                                     num_brows,
                                     num_bcols,
-                                    0,
+                                    2,
                                     block_dim,
                                     block_dim,
                                     const_cast<IntT*>(crows_data),
                                     const_cast<IntT*>(cols_data),
                                     const_cast<T*>(values_data),
-                                    CUSPARSE_INDEX_32I,
-                                    CUSPARSE_INDEX_32I,
+                                    CUSPARSE_INDEX_64I,
+                                    CUSPARSE_INDEX_64I,
                                     CUSPARSE_INDEX_BASE_ZERO,
-                                    CUDA_R_32F,
+                                    gpu_type,
                                     CUSPARSE_ORDER_ROW);
   });
+
+  std::cout << 13 << std::endl;
   if (batch_size > 1) {
 #if CUDA_VERSION >= 11070
     dev_ctx.CusparseCall([&](cusparseHandle_t handle) {
@@ -173,6 +182,7 @@ inline void CreateBsrDescriptor(const phi::SparseCsrTensor& x,
         "supported from CUDA 11.8"));
 #endif
   }
+  std::cout << 14 << std::endl;
 }
 
 template <typename T, typename IntT>
@@ -417,126 +427,6 @@ void SparseBlas<phi::GPUContext>::SPMM(bool transa,
   });
 }
 
-template <>
-void SparseBlas<phi::GPUContext>::SPMM(bool transa,
-                                       bool transb,
-                                       float alpha,
-                                       const SparseCsrTensor& mat_a,
-                                       const phi::DenseTensor& mat_b,
-                                       float beta,
-                                       phi::DenseTensor* mat_out) const {
-  auto a_descriptor = CuSparseSpMatDescriptor<float>(mat_a, dev_ctx_);
-  auto b_descriptor = CuSparseDnMatDescriptor<float>(mat_b, dev_ctx_);
-  auto out_descriptor = CuSparseDnMatDescriptor<float>(*mat_out, dev_ctx_);
-
-  // use SparseCsrTensor to store BSR's bsrVal, bsrRowPtr, bsrColIndicesmat
-  SparseCsrTensor bsr_tensor;
-  // default blockDim=2 and rowBlockDim = colBlockDim = blockDim
-  int block_dim = 2;
-  // begin convert a to BSR for
-  /*
-  {
-      cusparseSpMatDescr_t bsr_desc;
-      CreateBsrDescriptor<float, int>(bsr_tensor, dev_ctx_, block_dim,
-  &bsr_desc); cusparseDirection_t dir = CUSPARSE_DIRECTION_COLUMN; int base,
-  nnzb; const auto bsr_dims = bsr_tensor.dims(); const int m =
-  mat_a.dims()[mat_a.dims().size() - 2]; const int n =
-  mat_b.dims()[mat_b.dims().size() - 1]; int mb = (m + block_dim-1)/block_dim;
-      int nb = (n + block_dim-1)/block_dim;
-      int buffer_size;
-      dev_ctx_.CusparseCall([&](cusparseHandle_t handle) {
-              phi::dynload::cusparseScsr2gebsr_bufferSize(handle, dir, m, n,
-                      a_descriptor.descriptor(),
-                      mat_a.values().data<float>(),
-                      mat_a.crows().data<int>(),
-                      mat_a.cols().data<int>(),
-                      blockDim, blockDim,
-                      &buffer_size);
-              });
-      paddle::memory::allocation::AllocationPtr pBufferPtr =
-  paddle::memory::Alloc( dev_ctx_.GetPlace(), buffer_size,
-              phi::Stream(reinterpret_cast<phi::StreamId>(dev_ctx_.stream())));
-      void *pBuffer = pBufferPtr->ptr();
-
-      bsr_tensor.mutable_crows()->ResizeAndAllocate({mb + 1});
-
-      int *nnzTotalDevHostPtr = &nnzb;
-      dev_ctx_.CusparseCall([&](cusparseHandle_t handle) {
-            phi::dynload::cusparseXcsr2gebsrNnz(handle, dir, m, n,
-                    a_descriptor.descriptor(),
-                    mat_a.crows().data<int>(),
-                    mat_a.cols().data<int>(),
-                    bsr_desc,
-                    bsr_tensor.mutable_crows()->data<int>(),
-                    block_dim, block_dim,
-                    nnzTotalDevHostPtr,
-                    pBuffer);
-            });
-      if (NULL != nnzTotalDevHostPtr){
-        nnzb = *nnzTotalDevHostPtr;
-      }else{
-        cudaMemcpyAsync(&nnzb, bsr_tensor.crows().data() + mb, sizeof(int),
-                cudaMemcpyDeviceToHost, dev_ctx_.stream());
-        cudaMemcpyAsync(&base, bsr_tensor.crows().data(), sizeof(int),
-                cudaMemcpyDeviceToHost, dev_ctx_.stream());
-        nnzb -= base;
-      }
-      bsr_tensor.mutable_cols()->ResizeAndAllocate({nnzb});
-      bsr_tensor.mutable_values()->ResizeAndAllocate({block_dim*block_dim *
-  nnzb}); dev_ctx_.CusparseCall([&](cusparseHandle_t handle) {
-        phi::dynload::cusparseScsr2gebsr(handle, dir, m, n,
-            a_descriptor.descriptor(),
-            mat_a.values().data<float>(),
-            mat_a.crows().data<int>(),
-            mat_a.cols().data<int>(),
-            bsr_desc,
-            bsr_tensor.mutable_values()->data<float>(),
-            bsr_tensor.mutable_crows()->data<int>(),
-            bsr_tensor.mutable_cols()->data<int>(),
-            block_dim,
-            block_dim,
-            pBuffer);
-        });
-  }
-  */
-  // end convert a to BSR format
-
-  cudaDataType_t gpu_type = GetGpuDataType<float>();
-  size_t buffer_size = 0;
-  dev_ctx_.CusparseCall([&](cusparseHandle_t handle) {
-    phi::dynload::cusparseSpMM_bufferSize(handle,
-                                          GetTransposeOperation(transa),
-                                          GetTransposeOperation(transb),
-                                          &alpha,
-                                          a_descriptor.descriptor(),
-                                          b_descriptor.descriptor(),
-                                          &beta,
-                                          out_descriptor.descriptor(),
-                                          gpu_type,
-                                          GetSpMMAlgorithm(mat_a),
-                                          &buffer_size);
-  });
-
-  paddle::memory::allocation::AllocationPtr tmp_buffer = paddle::memory::Alloc(
-      dev_ctx_.GetPlace(),
-      buffer_size,
-      phi::Stream(reinterpret_cast<phi::StreamId>(dev_ctx_.stream())));
-  void* tmp_buffer_ptr = tmp_buffer->ptr();
-  dev_ctx_.CusparseCall([&](cusparseHandle_t handle) {
-    phi::dynload::cusparseSpMM(handle,
-                               GetTransposeOperation(transa),
-                               GetTransposeOperation(transb),
-                               &alpha,
-                               a_descriptor.descriptor(),
-                               b_descriptor.descriptor(),
-                               &beta,
-                               out_descriptor.descriptor(),
-                               gpu_type,
-                               GetSpMMAlgorithm(mat_a),
-                               tmp_buffer_ptr);
-  });
-}
-
 /************* SPARSE*DENSE->DENSE MV ************/
 template <>
 template <typename T, typename TensorType>
@@ -593,6 +483,82 @@ void SparseBlas<phi::GPUContext>::SPMV(bool transa,
 }
 
 /************* DENSE*DENSE->SPARSE MATMUL ************/
+template <typename T>
+inline void bsr2csr(const phi::GPUContext& dev_ctx_,
+                    cusparseDirection_t dir,
+                    int mb,
+                    int nb,
+                    const cusparseMatDescr_t descrA,
+                    const T* bsrValA,
+                    const int* bsrRowPtrA,
+                    const int* bsrColIndA,
+                    int blockDim,
+                    const cusparseMatDescr_t descrC,
+                    T* csrValC,
+                    int* csrRowPtrC,
+                    int* csrColIndC);
+
+template <>
+inline void bsr2csr<float>(const phi::GPUContext& dev_ctx_,
+                           cusparseDirection_t dir,
+                           int mb,
+                           int nb,
+                           const cusparseMatDescr_t descrA,
+                           const float* bsrValA,
+                           const int* bsrRowPtrA,
+                           const int* bsrColIndA,
+                           int blockDim,
+                           const cusparseMatDescr_t descrC,
+                           float* csrValC,
+                           int* csrRowPtrC,
+                           int* csrColIndC) {
+  dev_ctx_.CusparseCall([&](cusparseHandle_t handle) {
+    phi::dynload::cusparseSbsr2csr(handle,
+                                   dir,
+                                   mb,
+                                   nb,
+                                   descrA,
+                                   bsrValA,
+                                   bsrRowPtrA,
+                                   bsrColIndA,
+                                   blockDim,
+                                   descrC,
+                                   csrValC,
+                                   csrRowPtrC,
+                                   csrColIndC);
+  });
+}
+
+template <>
+inline void bsr2csr<double>(const phi::GPUContext& dev_ctx_,
+                            cusparseDirection_t dir,
+                            int mb,
+                            int nb,
+                            const cusparseMatDescr_t descrA,
+                            const double* bsrValA,
+                            const int* bsrRowPtrA,
+                            const int* bsrColIndA,
+                            int blockDim,
+                            const cusparseMatDescr_t descrC,
+                            double* csrValC,
+                            int* csrRowPtrC,
+                            int* csrColIndC) {
+  dev_ctx_.CusparseCall([&](cusparseHandle_t handle) {
+    phi::dynload::cusparseDbsr2csr(handle,
+                                   dir,
+                                   mb,
+                                   nb,
+                                   descrA,
+                                   bsrValA,
+                                   bsrRowPtrA,
+                                   bsrColIndA,
+                                   blockDim,
+                                   descrC,
+                                   csrValC,
+                                   csrRowPtrC,
+                                   csrColIndC);
+  });
+}
 #if CUDA_VERSION >= 11030
 template <>
 template <typename T, typename TensorType>
@@ -606,6 +572,25 @@ void SparseBlas<phi::GPUContext>::SDDMM(bool transa,
   auto a_descriptor = CuSparseDnMatDescriptor<T>(mat_a, dev_ctx_);
   auto b_descriptor = CuSparseDnMatDescriptor<T>(mat_b, dev_ctx_);
   auto out_descriptor = CuSparseSpMatDescriptor<T>(*mat_out, dev_ctx_);
+
+  // use SparseCsrTensor to store BSR's bsrVal, bsrRowPtr, bsrColIndicesmat
+  SparseCsrTensor bsr_tensor;
+  cusparseSpMatDescr_t bsr_desc;
+  // default blockDim=2 and rowBlockDim = colBlockDim = blockDim
+  int block_dim = 8;
+  cusparseDirection_t dir = CUSPARSE_DIRECTION_COLUMN;
+  int base, nnzb;
+  const auto bsr_dims = bsr_tensor.dims();
+  const int m = mat_a.dims()[mat_a.dims().size() - 2];
+  const int n = mat_b.dims()[mat_b.dims().size() - 1];
+  int mb = (m + block_dim - 1) / block_dim;
+  int nb = (n + block_dim - 1) / block_dim;
+
+  PD_VISIT_BASE_INTEGRAL_TYPES(
+      mat_out->non_zero_crows().dtype(), "Csr CuSparseSpMatDescriptor", ([&] {
+        CreateBsrDescriptor<T, data_t>(
+            *mat_out, dev_ctx_, block_dim, &bsr_desc);
+      }));
 
   cudaDataType_t gpu_type = GetGpuDataType<T>();
   size_t buffer_size = 0;
@@ -651,11 +636,66 @@ void SparseBlas<phi::GPUContext>::SDDMM(bool transa,
                                 a_descriptor.descriptor(),
                                 b_descriptor.descriptor(),
                                 &beta,
-                                out_descriptor.descriptor(),
+                                // out_descriptor.descriptor(),
+                                bsr_desc,
                                 gpu_type,
                                 CUSPARSE_SDDMM_ALG_DEFAULT,
                                 tmp_buffer_ptr);
   });
+
+  // convert bsr to csr
+  cusparseMatDescr_t descrA, descrC;
+  dev_ctx_.CusparseCall([&](cusparseHandle_t handle) {
+    phi::dynload::cusparseCreateMatDescr(&descrA);
+    phi::dynload::cusparseSetMatType(descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
+    phi::dynload::cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
+
+    phi::dynload::cusparseCreateMatDescr(&descrC);
+    phi::dynload::cusparseSetMatType(descrC, CUSPARSE_MATRIX_TYPE_GENERAL);
+    phi::dynload::cusparseSetMatIndexBase(descrC, CUSPARSE_INDEX_BASE_ZERO);
+  });
+
+  DenseTensor* values = mat_out->mutable_values();
+  DenseTensor* crows = mat_out->mutable_crows();
+  DenseTensor* cols = mat_out->mutable_cols();
+
+  std::cout << 0 << std::endl;
+  DenseTensor i32_in_crows =
+      phi::Empty<int32_t>(dev_ctx_, phi::vectorize(bsr_tensor.crows().dims()));
+  DenseTensor i32_in_cols =
+      phi::Empty<int32_t>(dev_ctx_, phi::vectorize(bsr_tensor.cols().dims()));
+  std::cout << 1 << std::endl;
+  phi::CastKernel<int64_t, GPUContext>(
+      dev_ctx_, bsr_tensor.crows(), DataType::INT32, &i32_in_crows);
+  std::cout << 2 << std::endl;
+  phi::CastKernel<int64_t, GPUContext>(
+      dev_ctx_, bsr_tensor.cols(), DataType::INT32, &i32_in_cols);
+  std::cout << 3 << std::endl;
+
+  DenseTensor i32_crows =
+      phi::Empty<int32_t>(dev_ctx_, phi::vectorize(crows->dims()));
+  DenseTensor i32_cols =
+      phi::Empty<int32_t>(dev_ctx_, phi::vectorize(cols->dims()));
+
+  bsr2csr<T>(dev_ctx_,
+             dir,
+             mb,
+             nb,
+             descrA,
+             bsr_tensor.values().data<T>(),
+             i32_in_crows.data<int>(),
+             i32_in_cols.data<int>(),
+             block_dim,
+             descrC,
+             values->data<T>(),
+             i32_crows.data<int>(),
+             i32_cols.data<int>());
+
+  std::cout << 4 << std::endl;
+  phi::CastKernel<int, GPUContext>(dev_ctx_, i32_crows, DataType::INT64, crows);
+  std::cout << 5 << std::endl;
+  phi::CastKernel<int, GPUContext>(dev_ctx_, i32_cols, DataType::INT64, cols);
+  std::cout << 6 << std::endl;
 }
 #endif
 

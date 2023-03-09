@@ -71,6 +71,8 @@ CUSPARSE_ROUTINE_EACH_R2(PLATFORM_DECLARE_DYNAMIC_LOAD_CUSPARSE_WRAP)
   __macro(cusparseCsrSetStridedBatch);    \
   __macro(cusparseBsrSetStridedBatch);    \
   __macro(cusparseCreateBsr);             \
+  __macro(cusparseSbsr2csr);              \
+  __macro(cusparseDbsr2csr);              \
   __macro(cusparseScsr2gebsr_bufferSize); \
   __macro(cusparseXcsr2gebsrNnz);         \
   __macro(cusparseScsr2gebsr);
