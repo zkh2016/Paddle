@@ -99,6 +99,8 @@ from .loss import multi_label_soft_margin_loss
 from .loss import triplet_margin_with_distance_loss
 from .loss import triplet_margin_loss
 from .loss import soft_margin_loss
+from .loss import gaussian_nll_loss
+
 from .norm import batch_norm  # noqa: F401
 from .norm import instance_norm  # noqa: F401
 from .norm import layer_norm  # noqa: F401
@@ -250,4 +252,5 @@ __all__ = [  # noqa
     'multi_margin_loss',
     'soft_margin_loss',
     'scaled_dot_product_attention',
+    'gaussian_nll_loss',
 ]
