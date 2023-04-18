@@ -1399,6 +1399,17 @@
   output : Tensor(x_grad)
   invoke : scale(out_grad, scale, 0.0f, true)
 
+- backward_op : scaled_dot_product_attention_grad
+  forward : scaled_dot_product_attention(Tensor query, Tensor key, Tensor value, float dropout_rate = 0.0, bool is_causal = false) -> Tensor(out), Tensor(softmax), Tensor(softmax_lse), Tensor(seed_offset)
+  args : (Tensor query, Tensor key, Tensor value, Tensor out, Tensor softmax_lse, Tensor seed_offset, Tensor out_grad, float dropout_rate = 0.0, bool is_causal = false)
+  output : Tensor(query_grad), Tensor(key_grad), Tensor(value_grad)
+  infer_meta :
+    func : FlashAttnGradInferMeta
+    param : [query, key, value]
+  kernel :
+    func : scaled_dot_product_attention_grad
+    data_type: query
+
 - backward_op : scatter_grad
   forward : scatter (Tensor x, Tensor index, Tensor updates, bool overwrite=true) -> Tensor(out)
   args : (Tensor index, Tensor updates, Tensor out_grad, bool overwrite)

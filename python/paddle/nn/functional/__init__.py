@@ -132,6 +132,7 @@ from .extension import gather_tree  # noqa: F401
 from .extension import temporal_shift  # noqa: F401
 
 from .sparse_attention import sparse_attention
+from .scaled_dot_product_attention import scaled_dot_product_attention
 
 __all__ = [  # noqa
     'celu',
@@ -248,4 +249,5 @@ __all__ = [  # noqa
     'triplet_margin_loss',
     'multi_margin_loss',
     'soft_margin_loss',
+    'scaled_dot_product_attention',
 ]

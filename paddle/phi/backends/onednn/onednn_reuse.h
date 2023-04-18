@@ -83,7 +83,7 @@ static std::unordered_map<std::string, dnnl::algorithm> OneDNNActivationMap() {
           {"gelu", dnnl::algorithm::eltwise_gelu_erf},
           {"gelu_erf", dnnl::algorithm::eltwise_gelu_erf},
           {"gelu_tanh", dnnl::algorithm::eltwise_gelu_tanh},
-          {"hard_sigmoid", dnnl::algorithm::eltwise_hardsigmoid},
+          // {"hard_sigmoid", dnnl::algorithm::eltwise_hardsigmoid},
           {"hard_swish", dnnl::algorithm::eltwise_hardswish},
           {"leaky_relu", dnnl::algorithm::eltwise_relu},
           {"mish", dnnl::algorithm::eltwise_mish},
